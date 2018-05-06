@@ -26,6 +26,7 @@ def contact_create():
         db.session.add(Contact(**request.json))
         db.session.commit()
     except Exception:
+        raise
         db.session.rollback()
         return jsonify({'success': False, 'error': 'Error creating contact.'})
 

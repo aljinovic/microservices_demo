@@ -1,0 +1,25 @@
+version: '3'
+services:
+  monolythic:
+    build: ./monolythic
+    ports:
+      - '80:80'
+    volumes:
+      - ./monolythic:/app
+      - ./db.sqlite:/db.sqlite
+    tty: false
+  api:
+    build: ./api
+    ports:
+      - '81:80'
+    volumes:
+      - ./api:/app
+      - ./db.sqlite:/db.sqlite
+    tty: false
+  photo-api:
+    build: ./photo-api
+    ports:
+      - '82:80'
+    volumes:
+      - ./photo-api:/app
+    tty: false
