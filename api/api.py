@@ -1,95 +1,74 @@
-import io
+import asyncio
+from aiohttp import web, ClientSession
+import sys, io
+from models import session, Contact
 from PIL import Image
-import requests
-import sys
-from flask import Flask, request, jsonify
-from models import db, Contact
 
 sys.stderr = sys.stdout
 
 
-def create_app():
-    app = Flask(__name__)
-    app.config['DEBUG'] = False
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../db.sqlite'
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    db.init_app(app)
-    return app, db
+async def contact_create(request):
+    new_contact = Contact(**await request.json())
+    session.add(new_contact)
+    session.commit()
+
+    return web.json_response({'success': True, 'id': new_contact.id})
 
 
-app, db = create_app()
+async def contact_edit(request):
+    contact = session.query(Contact).filter_by(id=request.match_info.get('id')).first()
+
+    for field, value in (await request.json()).items():
+        setattr(contact, field, value)
+
+    session.add(contact)
+    session.commit()
+
+    return web.json_response({'success': True})
 
 
-@app.route("/api/v0.1/contact", methods=['POST'])
-def contact_create():
-    try:
-        db.session.add(Contact(**request.json))
-        db.session.commit()
-    except Exception:
-        raise
-        db.session.rollback()
-        return jsonify({'success': False, 'error': 'Error creating contact.'})
+async def contact_delete(request):
+    contact = session.query(Contact).filter_by(id=request.match_info.get('id')).first()
+    session.delete(contact)
+    session.commit()
 
-    return jsonify({'success': True})
+    return web.json_response({'success': True})
 
 
-@app.route("/api/v0.1/contact/<uid>", methods=['PUT'])
-def contact_edit(uid):
-    try:
-        contact = Contact.query.filter_by(id=uid).first()
+async def photo_upload(request):
+    data = await request.post()
+    photo = data['photo'].file.read()
 
-        for field, value in request.json.items():
-            setattr(contact, field, value)
+    ratio = 0.5
+    Image.MAX_IMAGE_PIXELS = None
+    image = Image.open(io.BytesIO(photo))
+    new_dimensions = (int(round(image.size[0] * ratio)), int(round(image.size[1] * ratio)))
+    new_image = image.resize(new_dimensions, Image.ANTIALIAS)
+    new_image.format = image.format
+    new_image.save('new_photo.jpg')
 
-        db.session.add(contact)
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        return jsonify({'error': 'Error updating contact.'})
-
-    return jsonify({'success': True})
+    return web.json_response({'success': True})
 
 
-@app.route("/api/v0.1/contact/<uid>", methods=['DELETE'])
-def contacts_delete(uid):
-    try:
-        contact = Contact.query.filter_by(id=uid).first()
-        db.session.delete(contact)
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        return jsonify({'success': False, 'error': 'Error deleting contact.'})
+async def photo_upload_v2(request):
+    data = await request.post()
+    photo_raw = data['photo'].file.read()
 
-    return jsonify({'success': True})
+    asyncio.get_event_loop().create_task(call_photo_api(photo_raw))
+
+    return web.json_response({'success': True})
 
 
-@app.route("/api/v0.1/photo", methods=['POST'])
-def photo_upload():
-    try:
-        photo = request.files.get('photo').read()
-
-        Image.MAX_IMAGE_PIXELS = None
-        ratio = 0.5
-
-        image = Image.open(io.BytesIO(photo))
-        new_dimensions = (int(round(image.size[0] * ratio)), int(round(image.size[1] * ratio)))
-
-        new_image = image.resize(new_dimensions, Image.ANTIALIAS)
-        new_image.format = image.format
-        new_image.save('new_photo.jpg')
-    except Exception:
-        return jsonify({'success': False, 'error': str(e)})
-
-    return jsonify({'success': True})
+async def call_photo_api(photo):
+    photo_api_url = 'http://photo-api/photo-api/v0.1/photo'
+    async with ClientSession() as aiohttp_session:
+        async with aiohttp_session.post(photo_api_url, data={'photo': photo}) as _:
+            pass
 
 
-@app.route("/api/v0.2/photo", methods=['POST'])
-def photo_upload_v2():
-    photo_raw = request.files.get('photo')
-    response = requests.post('http://localhost:82/photo-api/v0.1/photo', files={'photo': photo_raw})
-
-    return jsonify(response.json())
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=80)
+app = web.Application()
+app.router.add_route('POST', '/api/v0.1/contact', contact_create)
+app.router.add_route('PUT', '/api/v0.1/contact/{id}', contact_edit)
+app.router.add_route('DELETE', '/api/v0.1/contact/{id}', contact_delete)
+app.router.add_route('POST', '/api/v0.1/photo', photo_upload)
+app.router.add_route('POST', '/api/v0.2/photo', photo_upload_v2)

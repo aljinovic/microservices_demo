@@ -34,17 +34,13 @@ def edit_contact(uid=None):
         if not my_contact:
             my_contact = Contact()
 
-        try:
-            form.populate_obj(my_contact)
-            db.session.add(my_contact)
-            db.session.commit()
-            flash('Saved successfully', 'success')
+        form.populate_obj(my_contact)
+        db.session.add(my_contact)
+        db.session.commit()
+        flash('Saved successfully', 'success')
 
-            if uid:
-                return redirect(url_for('contacts'))
-        except:
-            db.session.rollback()
-            flash('Error saving contact.', 'danger')
+        if uid:
+            return redirect(url_for('contacts'))
 
     return render_template('web/edit_contact.html', form=form)
 
@@ -59,16 +55,8 @@ def search():
 
 @app.route("/contacts/delete", methods=['POST'])
 def contacts_delete():
-    try:
-        db.session.delete(Contact.query.filter_by(id=request.form['id']).first())
-        db.session.commit()
-        flash('Delete successfully.', 'danger')
-    except:
-        db.session.rollback()
-        flash('Error delete  contact.', 'danger')
+    db.session.delete(Contact.query.filter_by(id=request.form['id']).first())
+    db.session.commit()
+    flash('Delete successfully.', 'danger')
 
     return redirect(url_for('contacts'))
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=80)

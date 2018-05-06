@@ -22,4 +22,4 @@ services:
       - '82:80'
     volumes:
       - ./photo-api:/app
-    tty: false
+    tty: true

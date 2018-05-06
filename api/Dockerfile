@@ -12,7 +12,7 @@ RUN apk add --no-cache --virtual=.build-deps zlib-dev jpeg-dev build-base && \
 COPY . /app
 RUN pip install -e .
 
-CMD ["gunicorn", "-b", ":80", "--workers=1", "api:app"]
+CMD ["gunicorn", "-b", ":80", "--worker-class=aiohttp.worker.GunicornWebWorker", "--workers=1", "api:app"]
 
 EXPOSE 80
 LABEL name=ms version=dev

@@ -1,5 +1,6 @@
-Flask==0.12.1
-Flask-SQLAlchemy==2.2
+aiohttp
+
 gunicorn
 pillow
 requests
+SQLAlchemy

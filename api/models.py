@@ -1,21 +1,27 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import create_engine
+from sqlalchemy import Column, Integer, String
 
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../db.sqlite'
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root@localhost/book'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+
+engine = create_engine('sqlite:///../db.sqlite', echo=False)
+Base = declarative_base()
 
 
-class Contact(db.Model):
+class Contact(Base):
     __tablename__ = 'contacts'
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-    surname = db.Column(db.String(100), nullable=True)
-    email = db.Column(db.String(200), nullable=True, unique=True)
-    phone = db.Column(db.String(20), nullable=True, unique=False)
+    id = Column(Integer, primary_key=True)
+    name = Column(String(80), nullable=False)
+    surname = Column(String(100), nullable=True)
+    email = Column(String(200), nullable=True, unique=True)
+    phone = Column(String(20), nullable=True, unique=False)
 
     def __repr__(self):
         return '<Contacts %r>' % self.name
+
+
+Base.metadata.create_all(engine)
+Session = sessionmaker(bind=engine)
+
+session = Session()
