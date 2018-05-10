@@ -7,7 +7,7 @@ services:
     volumes:
       - ./monolythic:/app
       - ./db.sqlite:/db.sqlite
-    tty: false
+    tty: true
   api:
     build: ./api
     ports:
@@ -15,7 +15,7 @@ services:
     volumes:
       - ./api:/app
       - ./db.sqlite:/db.sqlite
-    tty: false
+    tty: true
   photo-api:
     build: ./photo-api
     ports:

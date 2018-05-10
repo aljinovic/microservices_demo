@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
 import io
 import sys
+from time import time
 from PIL import Image
-import time
 
 sys.stderr = sys.stdout
 
@@ -18,7 +18,7 @@ app = create_app()
 
 @app.route("/photo-api/v0.1/photo", methods=['POST'])
 def photo_upload():
-    time.sleep(10)
+    start = time() * 1000
 
     photo = request.files.get('photo')
 
@@ -31,5 +31,7 @@ def photo_upload():
     new_image = image.resize(new_dimensions, Image.ANTIALIAS)
     new_image.format = image.format
     new_image.save('new_photo.jpg')
+
+    print('  - /photo-api/v0.1/photo | ' + str(round((time() * 1000 - start) / 1000, 2)) + 's')
 
     return jsonify({'success': True})

@@ -1,6 +1,7 @@
 import asyncio
 from aiohttp import web, ClientSession
 import sys, io
+from time import time
 from models import session, Contact
 from PIL import Image
 
@@ -36,6 +37,8 @@ async def contact_delete(request):
 
 
 async def photo_upload(request):
+    start = time() * 1000
+
     data = await request.post()
     photo = data['photo'].file.read()
 
@@ -47,14 +50,20 @@ async def photo_upload(request):
     new_image.format = image.format
     new_image.save('new_photo.jpg')
 
+    print('  - /api/v0.1/photo | ' + str(round((time() * 1000 - start) / 1000, 2)) + 's')
+
     return web.json_response({'success': True})
 
 
 async def photo_upload_v2(request):
+    start = time() * 1000
+
     data = await request.post()
     photo_raw = data['photo'].file.read()
 
     asyncio.get_event_loop().create_task(call_photo_api(photo_raw))
+
+    print('  - /api/v0.2/photo | ' + str(round((time() * 1000 - start) / 1000, 2)) + 's')
 
     return web.json_response({'success': True})
 
@@ -66,7 +75,7 @@ async def call_photo_api(photo):
             pass
 
 
-app = web.Application()
+app = web.Application(client_max_size=1024 ** 2 * 50)
 app.router.add_route('POST', '/api/v0.1/contact', contact_create)
 app.router.add_route('PUT', '/api/v0.1/contact/{id}', contact_edit)
 app.router.add_route('DELETE', '/api/v0.1/contact/{id}', contact_delete)
